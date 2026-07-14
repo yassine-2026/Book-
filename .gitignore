@@ -6,3 +6,11 @@ coverage/
 *.log
 .env*
 !.env.example
+
+venv/
+env/
+__pycache__/
+*.pyc
+uploads/
+static/books/
+static/covers/

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📚 مؤلف - eBook Generator</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a0a;color:#fff;font-family:Arial;padding:20px}
+        .container{max-width:800px;margin:0 auto}
+        h1{text-align:center;font-size:2.5em;background:linear-gradient(135deg,#8b5cf6,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;padding:20px 0}
+        .form-box{background:#111;border:1px solid #222;border-radius:15px;padding:25px;margin:20px 0}
+        input,select,textarea{width:100%;padding:12px;margin:8px 0;background:#000;border:1px solid #333;color:#fff;border-radius:8px;font-size:1em}
+        button{width:100%;padding:14px;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-size:1.1em;font-weight:bold;cursor:pointer;margin:10px 0}
+        button:hover{opacity:0.9}
+        button:disabled{background:#333}
+        .result{display:none;background:#111;border:1px solid #222;border-radius:15px;padding:25px;margin:20px 0}
+        .cover-preview{text-align:center;margin:20px 0}
+        .cover-preview img{max-width:300px;border-radius:15px;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+        .downloads{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:20px 0}
+        .dl-btn{padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;color:#fff;font-size:0.9em}
+        .dl-pdf{background:#e74c3c} .dl-docx{background:#2ecc71} .dl-txt{background:#3498db} .dl-html{background:#f39c12} .dl-zip{background:#9b59b6}
+        .chapters-list{max-height:300px;overflow-y:auto;margin:20px 0}
+        .chapter-item{background:#000;padding:12px;margin:8px 0;border-radius:8px;border-left:3px solid #8b5cf6}
+        .chapter-item h3{color:#8b5cf6}
+        .loading{display:none;text-align:center;padding:20px;color:#ffaa00}
+        .error{display:none;color:#ff4444;padding:10px;background:rgba(255,68,68,0.1);border-radius:8px;margin:10px 0}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 مؤلف</h1>
+        <p style="text-align:center;color:#888;margin-bottom:20px">أنشئ كتاباً إلكترونياً كاملاً بغلاف احترافي</p>
+        
+        <div class="form-box">
+            <input type="text" id="topic" placeholder="📝 موضوع الكتاب...">
+            
+            <select id="genre">
+                <option value="educational">📚 تعليمي</option>
+                <option value="story">📖 قصص</option>
+                <option value="self_help">💪 تطوير ذات</option>
+                <option value="technology">💻 تقنية</option>
+                <option value="business">💼 أعمال</option>
+                <option value="science">🔬 علوم</option>
+                <option value="cooking">🍳 طبخ</option>
+                <option value="history">📜 تاريخ</option>
+                <option value="religious">🕌 ديني</option>
+                <option value="health">🏥 صحة</option>
+                <option value="travel">✈️ سفر</option>
+                <option value="fantasy">🧙 خيال</option>
+                <option value="romance">💕 رومانسي</option>
+                <option value="horror">👻 رعب</option>
+                <option value="comedy">😂 كوميدي</option>
+            </select>
+            
+            <select id="language">
+                <option value="arabic">العربية</option>
+                <option value="english">English</option>
+                <option value="french">Français</option>
+                <option value="spanish">Español</option>
+                <option value="german">Deutsch</option>
+                <option value="italian">Italiano</option>
+                <option value="portuguese">Português</option>
+                <option value="russian">Русский</option>
+                <option value="chinese">中文</option>
+                <option value="japanese">日本語</option>
+                <option value="korean">한국어</option>
+                <option value="hindi">हिन्दी</option>
+                <option value="turkish">Türkçe</option>
+                <option value="urdu">اردو</option>
+                <option value="indonesian">Bahasa Indonesia</option>
+            </select>
+            
+            <input type="number" id="chapters" value="5" min="3" max="15" placeholder="عدد الفصول">
+            <input type="text" id="author" placeholder="✍️ اسم المؤلف">
+            
+            <button id="generateBtn" onclick="generateBook()">📚 إنشاء الكتاب</button>
+        </div>
+        
+        <div class="loading" id="loading">⏳ جاري إنشاء الكتاب...</div>
+        <div class="error" id="error"></div>
+        
+        <div class="result" id="result">
+            <h2 style="color:#8b5cf6;text-align:center">✅ تم إنشاء الكتاب!</h2>
+            <div class="cover-preview">
+                <img id="coverImage" src="" alt="Book Cover">
+            </div>
+            <div class="downloads">
+                <a class="dl-btn dl-pdf" id="dlPdf" href="#" download>📕 PDF</a>
+                <a class="dl-btn dl-docx" id="dlDocx" href="#" download>📘 Word</a>
+                <a class="dl-btn dl-txt" id="dlTxt" href="#" download>📄 TXT</a>
+                <a class="dl-btn dl-html" id="dlHtml" href="#" download>🌐 HTML</a>
+                <a class="dl-btn dl-zip" id="dlZip" href="#" download>📦 الكل ZIP</a>
+            </div>
+            <h3 style="margin-top:20px">📑 الفصول:</h3>
+            <div class="chapters-list" id="chaptersList"></div>
+        </div>
+    </div>
+    
+    <script>
+        async function generateBook() {
+            const topic = document.getElementById('topic').value.trim();
+            if(!topic) return showError('اكتب موضوع الكتاب');
+            
+            const btn = document.getElementById('generateBtn');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            
+            btn.disabled = true;
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            hideError();
+            
+            try {
+                const response = await fetch('/api/generate-book', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        topic: topic,
+                        genre: document.getElementById('genre').value,
+                        chapters: parseInt(document.getElementById('chapters').value),
+                        language: document.getElementById('language').value,
+                        author: document.getElementById('author').value || 'مؤلف'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if(!data.success) {
+                    throw new Error(data.error || 'Failed to generate');
+                }
+                
+                document.getElementById('coverImage').src = data.cover_url;
+                document.getElementById('dlPdf').href = data.downloads.pdf;
+                document.getElementById('dlDocx').href = data.downloads.docx;
+                document.getElementById('dlTxt').href = data.downloads.txt;
+                document.getElementById('dlHtml').href = data.downloads.html;
+                document.getElementById('dlZip').href = data.downloads.zip;
+                
+                document.getElementById('chaptersList').innerHTML = data.chapters.map(ch =>
+                    `<div class="chapter-item"><h3>📖 الفصل ${ch.number}: ${ch.title}</h3><p style="color:#aaa;margin-top:5px">${ch.content?.substring(0,150)}...</p></div>`
+                ).join('');
+                
+                result.style.display = 'block';
+            } catch(e) {
+                showError('❌ ' + e.message);
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+        
+        function showError(msg) {
+            const e = document.getElementById('error');
+            e.textContent = msg;
+            e.style.display = 'block';
+        }
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

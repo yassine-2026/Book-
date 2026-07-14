@@ -1,35 +1,79 @@
 const express = require('express');
-const app = express();
+const path = require('path');
+const fs = require('fs');
 
-app.get('*', (req, res) => {
-    res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Python App Ready</title>
-            <style>
-                body { background: #0a0a0a; color: #fff; font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
-                h1 { color: #8b5cf6; }
-                p { color: #888; max-width: 500px; line-height: 1.5; }
-            </style>
-        </head>
-        <body>
-            <h1>🐍 Python App Ready for Render</h1>
-            <p>Your Python files (app.py, requirements.txt, render.yaml, templates/index.html) have been generated correctly.</p>
-            <p>Since AI Studio preview runs Node.js natively, this is a placeholder page. To deploy to Render:</p>
-            <p style="text-align: left; background: #111; padding: 20px; border-radius: 10px; border: 1px solid #333; margin-top: 20px;">
-                1. Push this project to GitHub<br>
-                2. Connect your repo in Render<br>
-                3. The <b>render.yaml</b> file will automatically configure the Python environment!<br>
-            </p>
-        </body>
-        </html>
-    `);
+const app = express();
+app.use(express.json());
+
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'templates', 'index.html'));
+});
+
+app.post('/api/generate-book', async (req, res) => {
+    try {
+        const data = req.body;
+        const topic = (data.topic || '').trim();
+        const chapters = Math.min(parseInt(data.chapters || '5', 10), 10);
+        const language = data.language || 'arabic';
+        const genre = data.genre || 'educational';
+        
+        if (!topic) {
+            return res.status(400).json({ success: false, error: "Topic required" });
+        }
+        
+        const prompt = `Write a ${genre} book about "${topic}" in ${language}.
+        ${chapters} chapters. Each 300-500 words.
+        Return ONLY JSON: {"title":"...","chapters":[{"number":1,"title":"...","content":"..."}]}`;
+        
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${GROQ_API_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "llama-3.3-70b-versatile",
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.8,
+                max_tokens: 4000
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.text();
+            throw new Error(err);
+        }
+        
+        const responseData = await response.json();
+        const text = responseData.choices[0].message.content;
+        
+        let book;
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}') + 1;
+        if (start >= 0 && end > start) {
+            book = JSON.parse(text.substring(start, end));
+        } else {
+            book = { title: topic, chapters: [] };
+        }
+        
+        res.json({
+            success: true,
+            title: book.title,
+            chapters: book.chapters ? book.chapters.slice(0, chapters) : []
+        });
+        
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.get('/api/health', (req, res) => {
+    res.json({ status: "ok" });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Dummy Node server listening on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Node server mimicking Python app listening on port ${PORT}`);
 });

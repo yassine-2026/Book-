@@ -8,11 +8,11 @@ import { Groq } from 'groq-sdk';
 import PDFDocument from 'pdfkit';
 import { Document, Paragraph, HeadingLevel, Packer, TextRun, AlignmentType } from 'docx';
 // @ts-ignore
-import archiver from 'archiver';
+import { ZipArchive } from 'archiver';
 import crypto from 'crypto';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const _filename = typeof __filename !== 'undefined' ? __filename : fileURLToPath(import.meta.url);
+const _dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(_filename);
 
 const app = express();
 app.use(cors());
@@ -23,8 +23,8 @@ const PORT = 3000;
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 const groq = GROQ_API_KEY ? new Groq({ apiKey: GROQ_API_KEY }) : null;
 
-const OUTPUT_DIR = path.join(__dirname, 'static', 'books');
-const COVERS_DIR = path.join(__dirname, 'static', 'covers');
+const OUTPUT_DIR = path.join(_dirname, 'static', 'books');
+const COVERS_DIR = path.join(_dirname, 'static', 'covers');
 
 if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 if (!fs.existsSync(COVERS_DIR)) fs.mkdirSync(COVERS_DIR, { recursive: true });
@@ -364,7 +364,7 @@ h2{color:#4a148c;margin-top:40px}
 async function create_zip(zip_path: string, title: string, pdf_path: string, docx_path: string, txt_path: string, html_path: string): Promise<void> {
     return new Promise((resolve, reject) => {
         const output = fs.createWriteStream(zip_path);
-        const archive = archiver('zip', { zlib: { level: 9 } });
+        const archive = new ZipArchive({ zlib: { level: 9 } });
 
         output.on('close', () => resolve());
         archive.on('error', (err) => reject(err));
